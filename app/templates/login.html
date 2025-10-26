@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block body %}
+<main class="container py-5" style="font-family: inherit;">
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+      <!-- Card with custom background -->
+      <div class="card shadow-sm border-0 bg-light">
+        <div class="card-body p-4">
+          <h2 class="card-title text-center mb-4">Log In</h2>
+          <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <!-- Email field with floating label -->
+            <div class="form-floating mb-3">
+              {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), id="floatingEmail", placeholder="Email") }}
+              <label for="floatingEmail">Email</label>
+              {% if form.email.errors %}
+                <div class="invalid-feedback">
+                  {% for error in form.email.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Password field with floating label -->
+            <div class="form-floating mb-4">
+              {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), id="floatingPassword", placeholder="Password", autocomplete="current-password") }}
+              <label for="floatingPassword">Password</label>
+              {% if form.password.errors %}
+                <div class="invalid-feedback">
+                  {% for error in form.password.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="d-grid mb-3">
+              {{ form.submit(class="btn btn-primary btn-lg") }}
+            </div>
+
+            <p class="text-center mb-0">
+              Don't have an account?
+              <a href="{{ url_for('auth.signup') }}">Sign up</a>
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}

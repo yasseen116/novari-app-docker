@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container py-5">
+  <h2 class="mb-4">Delete Products</h2>
+  <div class="row">
+    {% for product in products %}
+    <div class="col-md-4 col-6 mb-4">
+      <div class="card h-100">
+        {% if product.photos and product.photos[0].image_url %}
+          <img src="{{ url_for('static', filename='uploads/' ~ product.photos[0].image_url) }}" class="card-img-top" alt="{{ product.productName }}">
+        {% else %}
+          <img src="{{ url_for('static', filename='img/default.jpg') }}" class="card-img-top" alt="{{ product.productName }}">
+        {% endif %}
+        <div class="card-body">
+          <h5 class="card-title">{{ product.productName }}</h5>
+          <form method="post" action="{{ url_for('admin.delete_products') }}">
+            <input type="hidden" name="product_id" value="{{ product.pID }}">
+            <button type="submit" class="btn btn-danger w-100">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block body %}
+<main class="container py-5">
+  <h2 class="mb-4">My Profile</h2>
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Account Info</h5>
+          <p><strong>Username:</strong> {{ user.username }}</p>
+          <p><strong>Email:</strong> {{ user.email }}</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Change Password</h5>
+          <form method="post" action="{{ url_for('views.changepassword', customer_id=user.id) }}">
+            <div class="mb-3">
+              <label for="current_password" class="form-label">Current Password</label>
+              <input type="password" class="form-control" id="current_password" name="current_password" required>
+            </div>
+            <div class="mb-3">
+              <label for="new_password" class="form-label">New Password</label>
+              <input type="password" class="form-control" id="new_password" name="new_password" required>
+            </div>
+            <div class="mb-3">
+              <label for="confirm_new_password" class="form-label">Confirm New Password</label>
+              <input type="password" class="form-control" id="confirm_new_password" name="confirm_new_password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Change Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <!-- Optionally add more account management features here -->
+    </div>
+  </div>
+</main>
+{% endblock %}

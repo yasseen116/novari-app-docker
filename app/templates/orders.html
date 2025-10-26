@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block body %}
+<main class="container py-5">
+  <h2 class="mb-4">My Orders</h2>
+  {% if orders %}
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Order ID</th>
+            <th>Product</th>
+            <th>Size</th>
+            <th>Quantity</th>
+            <th>Unit Price</th>
+            <th>Status</th>
+            <th>Ordered At</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+          <tr>
+            <td>{{ order.orderID }}</td>
+            <td>{{ order.product.productName if order.product else 'N/A' }}</td>
+            <td>{{ order.size.sizeName if order.size else 'N/A' }}</td>
+            <td>{{ order.quantity }}</td>
+            <td>EGP {{ '%.2f'|format(order.unit_price) }}</td>
+            <td>{{ order.status }}</td>
+            <td>{{ order.ordered_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>
+              {% if order.status == 'pending' %}
+                <form method="post" action="{{ url_for('views.cancel_order', order_id=order.orderID) }}" style="display:inline;">
+                  <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+                </form>
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-info">You have no orders yet.</div>
+  {% endif %}
+</main>
+{% endblock %}

@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% block body %}
+
+<main class="container py-5">
+  <div class="row">
+    <!-- Filter Sidebar -->
+    <div class="col-lg-3 col-md-4 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title mb-4">Filter Products</h5>
+          
+          <!-- Price Range Filter -->
+          <div class="mb-4">
+            <h6 class="mb-3 fw-bold">Price Range (EGP)</h6>
+            <div class="form-check mb-2">
+              <input class="form-check-input price-filter" type="radio" name="priceRange" id="price-all" value="all" checked>
+              <label class="form-check-label" for="price-all">All Prices</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input price-filter" type="radio" name="priceRange" id="price-0-500" value="0-500">
+              <label class="form-check-label" for="price-0-500">EGP 0 - 500</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input price-filter" type="radio" name="priceRange" id="price-500-1500" value="500-1500">
+              <label class="form-check-label" for="price-500-1500">EGP 500 - 1,500</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input price-filter" type="radio" name="priceRange" id="price-1500-3000" value="1500-3000">
+              <label class="form-check-label" for="price-1500-3000">EGP 1,500 - 3,000</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input price-filter" type="radio" name="priceRange" id="price-3000" value="3000+">
+              <label class="form-check-label" for="price-3000">EGP 3,000+</label>
+            </div>
+          </div>
+          
+          <!-- Rating Filter -->
+          <div class="mb-4">
+            <h6 class="mb-3 fw-bold">Minimum Rating</h6>
+            <select id="rating-filter" class="form-select">
+              <option value="0">Any Rating</option>
+              <option value="3">3+ Stars</option>
+              <option value="4">4+ Stars</option>
+              <option value="5">5 Stars Only</option>
+            </select>
+          </div>
+          
+          <!-- Sort By -->
+          <div class="mb-4">
+            <h6 class="mb-3 fw-bold">Sort By</h6>
+            <select id="sort-by" class="form-select">
+              <option value="default">Default</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="name-asc">Name: A to Z</option>
+              <option value="name-desc">Name: Z to A</option>
+              <option value="rating-desc">Highest Rating</option>
+            </select>
+          </div>
+          
+          <button id="reset-filters" class="btn btn-outline-primary w-100 mb-4">
+            Reset Filters
+          </button>
+          
+          <!-- Category Filter -->
+          <div class="mb-2">
+            <h6 class="mb-3 fw-bold">Categories</h6>
+            <div class="nav flex-column">
+              <button class="nav-link text-start active category-filter" data-cat="">
+                All Categories
+              </button>
+              <button class="nav-link text-start category-filter" data-cat="jackets">Jackets</button>
+              <button class="nav-link text-start category-filter" data-cat="hoodies">Hoodies</button>
+              <button class="nav-link text-start category-filter" data-cat="pants">Pants</button>
+              {% for c in categories %}
+                {% if c.catName|lower not in ['jackets', 'hoodies', 'pants'] %}
+                  <button class="nav-link text-start category-filter" data-cat="{{ c.catName|lower }}">
+                    {{ c.catName }}
+                  </button>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="col-lg-9 col-md-8">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">All Products</h2>
+        <small class="text-muted" id="product-count">{{ products|length }} products found</small>
+      </div>
+      
+      <div id="all-products" class="row g-3">
+        {% for product in products %}
+        <div class="col-md-4 col-6 product-item">
+          <div class="card h-100 position-relative">
+            <div class="product-image-container">
+              {% if product.photos and product.photos[0].image_url %}
+                <img src="{{ url_for('static', filename='uploads/' ~ product.photos[0].image_url) }}" class="product-image" alt="{{ product.productName }}">
+              {% else %}
+                <img src="{{ url_for('static', filename='img/default.jpg') }}" class="product-image" alt="{{ product.productName }}">
+              {% endif %}
+              <span class="favorite-icon position-absolute top-0 end-0 m-2" style="font-size: 1.5rem; color: #222; z-index: 2;">
+                <i class="fas fa-heart"></i>
+              </span>
+            </div>
+            <div class="card-body text-center">
+              <h5 class="card-title fw-bold" style="font-family: 'Georgia', serif;">{{ product.productName }}</h5>
+              <p class="card-text">EGP {{ "%.2f"|format(product.productPrice) }}</p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// --- Helper to set filters from query params ---
+function setFiltersFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const category = params.get('category') || '';
+  const price = params.get('price') || 'all';
+  const rating = params.get('rating') || '0';
+  const sort = params.get('sort') || 'default';
+
+  // Set category
+  document.querySelectorAll('.category-filter').forEach(btn => {
+    if ((btn.dataset.cat || '') === category) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  // Set price
+  const priceInput = document.querySelector(`.price-filter[value="${price}"]`);
+  if (priceInput) priceInput.checked = true;
+  // Set rating
+  document.getElementById('rating-filter').value = rating;
+  // Set sort
+  document.getElementById('sort-by').value = sort;
+}
+
+// --- On page load, set filters from query and trigger AJAX ---
+document.addEventListener('DOMContentLoaded', function() {
+  setFiltersFromQuery();
+  // Hide all products until AJAX completes
+  document.getElementById('all-products').innerHTML = '';
+  updateProducts();
+});
+
+// Function to update products via AJAX
+function updateProducts() {
+  const params = new URLSearchParams();
+  const activeCat = document.querySelector('.category-filter.active')?.dataset.cat;
+  const price = document.querySelector('.price-filter:checked')?.value;
+  const rating = document.getElementById('rating-filter')?.value;
+  const sort = document.getElementById('sort-by')?.value;
+
+  if (activeCat) params.set('category', activeCat);
+  if (price && price !== 'all') params.set('price', price);
+  if (rating && rating !== '0') params.set('rating', rating);
+  if (sort && sort !== 'default') params.set('sort', sort);
+
+  // Show loading state
+  document.getElementById('all-products').innerHTML = '<div class="col-12 text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+  // Debug: log the AJAX request
+  console.log('AJAX filter params:', params.toString());
+
+  // Make AJAX request
+  fetch('/shop.html?' + params.toString(), {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    // Debug: log the AJAX response
+    console.log('AJAX response:', data);
+    // Update product count
+    document.getElementById('product-count').textContent = `${data.count} products found`;
+
+    // Update products
+    const productsHtml = data.products.map(product => {
+      let imgSrc = product.image.startsWith('http') ? product.image :
+                   (product.image.startsWith('/static/') ? product.image : '/static/uploads/' + product.image);
+      const productId = product.id || product.pID;
+      return `
+        <div class="col-md-4 col-6 product-item">
+          <div class="card h-100 position-relative">
+            <div class="product-image-container">
+              <img src="${imgSrc}" class="product-image" alt="${product.name}">
+              <span class="favorite-icon position-absolute top-0 end-0 m-2" style="font-size: 1.5rem; color: #222; z-index: 2;">
+                <i class="fas fa-heart"></i>
+              </span>
+            </div>
+            <div class="card-body text-center">
+              <h5 class="card-title fw-bold" style="font-family: 'Georgia', serif;">${product.name}</h5>
+              <p class="card-text">EGP ${product.price.toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('all-products').innerHTML = productsHtml;
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    document.getElementById('all-products').innerHTML = '<div class="col-12 text-center text-danger">Error loading products. Please try again.</div>';
+  });
+}
+
+// Attach to filter events
+document.querySelectorAll('.category-filter').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.category-filter').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    updateProducts();
+  });
+});
+
+document.querySelectorAll('.price-filter').forEach(btn => {
+  btn.addEventListener('change', updateProducts);
+});
+
+document.getElementById('rating-filter').addEventListener('change', updateProducts);
+document.getElementById('sort-by').addEventListener('change', updateProducts);
+
+document.getElementById('reset-filters').addEventListener('click', function() {
+  // Reset all filters
+  document.querySelectorAll('.category-filter').forEach(b => b.classList.remove('active'));
+  document.querySelector('.category-filter[data-cat=""]').classList.add('active');
+  document.getElementById('price-all').checked = true;
+  document.getElementById('rating-filter').value = '0';
+  document.getElementById('sort-by').value = 'default';
+  
+  // Update products
+  updateProducts();
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Admin Dashboard</h2>
+    <div class="btn-group" role="group" aria-label="Admin actions">
+      <a href="{{ url_for('views.addnew') }}" class="btn btn-primary btn-lg px-4">+ Add Product</a>
+      <a href="{{ url_for('admin.edit_products') }}" class="btn btn-warning btn-lg px-4">Edit Product</a>
+      <a href="{{ url_for('admin.delete_products') }}" class="btn btn-outline-danger btn-lg px-4">Delete Product</a>
+    </div>
+  </div>
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card text-white bg-success mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Total Sales</h5>
+          <p class="card-text display-6">EGP {{ '%.2f'|format(total_sales) }}</p>
+        </div>
+      </div>
+      <div class="card text-white bg-info mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Total Units Sold</h5>
+          <p class="card-text display-6">{{ total_units_sold }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-8">
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Sales Trend (Last 30 Days)</h5>
+          <canvas id="salesTrendChart" height="80"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title mb-3">All Orders</h5>
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Address</th>
+              <th>Product</th>
+              <th>Size</th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Status</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in orders %}
+            <tr>
+              <td>{{ o.orderID }}</td>
+              <td>{{ o.ordered_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>{{ o.customer.username if o.customer else '' }}</td>
+              <td>{{ o.name or '' }}</td>
+              <td>{{ o.email or '' }}</td>
+              <td>{{ o.address or '' }}</td>
+              <td>{{ o.product.productName if o.product else '' }}</td>
+              <td>{{ o.size.size_label if o.size else '' }}</td>
+              <td>{{ o.quantity }}</td>
+              <td>EGP {{ '%.2f'|format(o.unit_price) }}</td>
+              <td>
+                <form method="post" action="{{ url_for('admin.update_order_status', order_id=o.orderID) }}" style="display:inline-block;">
+                  <select name="status" class="form-select form-select-sm d-inline w-auto">
+                    {% for status in ['pending','shipped','delivered','canceled'] %}
+                      <option value="{{ status }}" {% if o.status == status %}selected{% endif %}>{{ status|capitalize }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                </form>
+              </td>
+              <td>EGP {{ '%.2f'|format(o.unit_price * o.quantity) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="card mt-5">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Manage Categories</h5>
+      <form method="post" action="{{ url_for('admin.categories') }}" class="row g-3 mb-4">
+        <div class="col-md-4">
+          <input type="text" name="catName" class="form-control" placeholder="Category Name" required>
+        </div>
+        <div class="col-md-5">
+          <input type="text" name="catDesc" class="form-control" placeholder="Description">
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-success w-100">Add Category</button>
+        </div>
+      </form>
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat in categories %}
+          <tr>
+            <td>{{ cat.catID }}</td>
+            <td>{{ cat.catName }}</td>
+            <td>{{ cat.description }}</td>
+            <td>
+              <form method="post" action="{{ url_for('admin.delete_category', cat_id=cat.catID) }}" style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this category?')">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('salesTrendChart').getContext('2d');
+const salesTrend = {{ sales_trend|tojson }};
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: salesTrend.map(d => d.date),
+    datasets: [{
+      label: 'Sales (EGP)',
+      data: salesTrend.map(d => d.sales),
+      borderColor: '#28a745',
+      backgroundColor: 'rgba(40,167,69,0.1)',
+      fill: true,
+      tension: 0.3
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false }
+    },
+    scales: {
+      y: { beginAtZero: true }
+    }
+  }
+});
+</script>
+{% endblock %} 

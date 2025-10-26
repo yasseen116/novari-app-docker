@@ -1,0 +1,19 @@
+{%extends 'base.html'%}
+{% block body %}
+
+  <h1>Create New Product</h1>
+    {%if pname%}
+    <h1>productname is {{pname}}</h1>
+    {%else%}
+  <form action="" method="POST">
+    {{ form.hidden_tag() }}
+    {{ form.pname.label }}
+    {{ form.pname() }}
+    <br>
+    {{ form.submit()}}
+
+  </form>
+    {%endif%}
+
+
+  {% endblock %}

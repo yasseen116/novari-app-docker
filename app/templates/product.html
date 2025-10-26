@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+{% block body %}
+<style>
+.product-main-row { display: flex; flex-wrap: wrap; gap: 2rem; }
+.product-gallery-col { flex: 0 0 120px; max-width: 120px; }
+.product-gallery-vertical { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.product-gallery-thumb { width: 70px; height: 70px; object-fit: cover; border-radius: 6px; border: 2px solid #eee; background: #f7f7f7; cursor: pointer; transition: border 0.2s; }
+.product-gallery-thumb.active, .product-gallery-thumb:hover { border: 2px solid #007185; }
+.product-main-img { width: 400px; height: 400px; object-fit: contain; border-radius: 10px; background: #fafafa; box-shadow: 0 1px 6px rgba(0,0,0,0.04); margin-bottom: 10px; }
+@media (max-width: 991px) { .product-main-row { flex-direction: column; align-items: center; } .product-main-img { width: 90vw; height: 50vw; max-width: 400px; max-height: 400px; } }
+.product-info-col { flex: 1; min-width: 300px; max-width: 600px; position: relative; }
+.product-title { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+.product-price { font-size: 1.5rem; color: #B12704; font-weight: 700; margin-bottom: 0.5rem; }
+.product-stock { color: #007600; font-weight: 600; margin-bottom: 0.5rem; }
+.product-options { margin-bottom: 1.2rem; }
+.product-options .btn { margin-right: 0.5rem; margin-bottom: 0.5rem; border-radius: 5px; }
+.product-actions-sticky { position: sticky; top: 2rem; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 1.5rem; z-index: 2; }
+.product-actions-sticky .btn { font-size: 1.1rem; font-weight: 600; border-radius: 6px; margin-bottom: 0.5rem; }
+.product-actions-sticky .btn-wishlist { background: #fff; color: #FF4081; border: 1px solid #FF4081; }
+.product-actions-sticky .btn-wishlist.active, .product-actions-sticky .btn-wishlist:hover { background: #FF4081; color: #fff; }
+
+/* Improved size selector styles */
+.size-selector-container { margin-bottom: 1.5rem; }
+.size-options-grid { 
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+.size-option {
+    padding: 10px 5px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+.size-option:hover {
+    border-color: #888;
+}
+.size-option.active {
+    background: #000;
+    color: white;
+    border-color: #000;
+}
+.size-option.unavailable {
+    color: #ccc;
+    text-decoration: line-through;
+    cursor: not-allowed;
+    background: #f9f9f9;
+}
+.size-guide-link {
+    display: inline-block;
+    margin-top: 8px;
+    color: #0066c0;
+    font-size: 0.9rem;
+    text-decoration: underline;
+}
+
+/* Toast notification style */
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    max-width: 350px;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    animation: slideIn 0.3s, fadeOut 0.5s 2.5s forwards;
+}
+.toast-notification i {
+    margin-right: 10px;
+    font-size: 1.2rem;
+}
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeOut {
+    to { opacity: 0; visibility: hidden; }
+}
+</style>
+
+<div class="container py-5">
+  <div class="product-main-row">
+    <!-- Gallery -->
+    <div class="product-gallery-col">
+      <div class="product-gallery-vertical">
+        {% for photo in product.photos %}
+        <img src="{{ url_for('static', filename='uploads/' ~ photo.image_url) }}" class="product-gallery-thumb{% if loop.first %} active{% endif %}" onclick="switchMainImg(this)" alt="{{ product.productName }} view {{ loop.index }}">
+        {% endfor %}
+      </div>
+    </div>
+    <img id="mainProductImg" src="{{ url_for('static', filename='uploads/' ~ product.photos[0].image_url) if product.photos else url_for('static', filename='img/default.jpg') }}" class="product-main-img" alt="{{ product.productName }}">
+    <!-- Info & Actions -->
+    <div class="product-info-col">
+      <div class="product-title">{{ product.productName }}</div>
+      <div class="product-price">EGP {{ "%.2f"|format(product.productPrice) }}</div>
+      <div class="product-stock">In Stock</div>
+      
+      <!-- Improved Size Selector -->
+      <div class="size-selector-container">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="fw-bold">Size:</div>
+          {% if product.size_chart %}
+          <a href="#size-chart" class="size-guide-link">Size Guide</a>
+          {% endif %}
+        </div>
+        <div class="size-options-grid">
+          {% set standard_sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] %}
+          {% for size in standard_sizes %}
+            {% set is_available = product.sizes|selectattr('size_label', 'equalto', size)|list %}
+            <button class="size-option {% if not is_available %}unavailable{% endif %}" 
+                    data-size="{{ size }}"
+                    {% if not is_available %}disabled{% endif %}>
+              {{ size }}
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+      
+      <div class="mb-3">
+        <label for="prod-qty" class="form-label">Quantity:</label>
+        <select id="prod-qty" class="form-select" style="width:100px;display:inline-block;">
+          {% for i in range(1, 11) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="product-actions-sticky">
+        <button id="addToCartBtn" class="btn btn-warning w-100 mb-2"><i class="fas fa-shopping-cart me-2"></i>Add to Cart</button>
+        <button id="addToWishlistBtn" class="btn btn-wishlist w-100"><i class="fas fa-heart me-2"></i>Add to Wishlist</button>
+      </div>
+      <div class="mt-4">{{ product.description }}</div>
+      {% if product.size_chart %}
+      <div id="size-chart" class="size-chart-table mt-4">{{ product.size_chart|safe }}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+// Current date and time 
+const currentDateTime = "2025-05-08 02:10:37";
+const currentUser = "jojo2500";
+console.log(`Product page loaded by ${currentUser} at ${currentDateTime}`);
+
+function switchMainImg(thumb) {
+  document.getElementById('mainProductImg').src = thumb.src;
+  document.querySelectorAll('.product-gallery-thumb').forEach(img => img.classList.remove('active'));
+  thumb.classList.add('active');
+}
+
+// Improved size selection
+document.querySelectorAll('.size-option:not(.unavailable)').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.size-option').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// Toast notification function
+function showToast(message, type = 'success') {
+  // Remove any existing toast
+  const existingToast = document.querySelector('.toast-notification');
+  if (existingToast) {
+    existingToast.remove();
+  }
+  
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = 'toast-notification';
+  toast.innerHTML = `
+    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+    <span>${message}</span>
+  `;
+  
+  // Add to body
+  document.body.appendChild(toast);
+  
+  // Auto-remove after 3 seconds
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
+
+// Add to Cart AJAX
+const addToCartBtn = document.getElementById('addToCartBtn');
+if (addToCartBtn) {
+  addToCartBtn.addEventListener('click', async function() {
+    const productId = {{ product.pID }};
+    const selectedSizeBtn = document.querySelector('.size-option.active');
+    const size = selectedSizeBtn ? selectedSizeBtn.dataset.size : null;
+    const quantity = document.getElementById('prod-qty').value;
+    if (!size) {
+      showToast('Please select a size', 'error');
+      return;
+    }
+    addToCartBtn.disabled = true;
+    addToCartBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';
+    try {
+      const resp = await fetch('/add-to-cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId, size, quantity })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        addToCartBtn.innerHTML = '<i class="fas fa-check me-2"></i>Added!';
+        showToast('Product added to cart successfully!');
+        
+        // Update cart count in navigation if available
+        updateCartCount(data.cart_count);
+        
+        setTimeout(() => { 
+          addToCartBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Add to Cart'; 
+          addToCartBtn.disabled = false; 
+        }, 1200);
+      } else {
+        showToast(data.message || 'Error adding to cart', 'error');
+        addToCartBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Add to Cart';
+        addToCartBtn.disabled = false;
+      }
+    } catch (e) {
+      showToast('Error adding to cart. Please try again.', 'error');
+      addToCartBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Add to Cart';
+      addToCartBtn.disabled = false;
+    }
+  });
+}
+
+// Update cart count in navigation
+function updateCartCount(count) {
+  const cartBadge = document.querySelector('.badge-cart');
+  if (cartBadge && count) {
+    cartBadge.textContent = count;
+    cartBadge.style.display = 'inline-block';
+  }
+}
+
+// Add to Wishlist AJAX - Fixed to prevent 404
+const addToWishlistBtn = document.getElementById('addToWishlistBtn');
+if (addToWishlistBtn) {
+  addToWishlistBtn.addEventListener('click', async function() {
+    const productId = {{ product.pID }};
+    addToWishlistBtn.disabled = true;
+    addToWishlistBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';
+    try {
+      const resp = await fetch('/add-to-wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        addToWishlistBtn.innerHTML = '<i class="fas fa-check me-2"></i>Added!';
+        addToWishlistBtn.classList.add('active');
+        
+        // Update wishlist/favorites count if applicable
+        if (data.favorites_count) {
+          const favoritesBadge = document.querySelector('.favorites-count');
+          if (favoritesBadge) {
+            favoritesBadge.textContent = data.favorites_count;
+            favoritesBadge.style.display = 'inline-block';
+          }
+        }
+        
+        // Show success message instead of redirecting
+        showToast('Added to favorites successfully!');
+        
+        setTimeout(() => {
+          addToWishlistBtn.innerHTML = '<i class="fas fa-heart me-2"></i>Add to Wishlist';
+          addToWishlistBtn.disabled = false;
+        }, 1200);
+      } else {
+        showToast(data.message || 'Error adding to favorites', 'error');
+        addToWishlistBtn.innerHTML = '<i class="fas fa-heart me-2"></i>Add to Wishlist';
+        addToWishlistBtn.disabled = false;
+      }
+    } catch (e) {
+      console.error('Error adding to wishlist:', e);
+      showToast('Error adding to favorites. Please try again.', 'error');
+      addToWishlistBtn.innerHTML = '<i class="fas fa-heart me-2"></i>Add to Wishlist';
+      addToWishlistBtn.disabled = false;
+    }
+  });
+}
+
+// Check if product is already in wishlist/favorites on page load
+async function checkIfInWishlist() {
+  const productId = {{ product.pID }};
+  try {
+    const resp = await fetch(`/api/wishlist/check/${productId}`);
+    const data = await resp.json();
+    if (data.in_wishlist) {
+      addToWishlistBtn.classList.add('active');
+      addToWishlistBtn.innerHTML = '<i class="fas fa-heart me-2"></i>Added to Wishlist';
+    }
+  } catch (e) {
+    console.error("Error checking wishlist status:", e);
+  }
+}
+
+// Call this function on page load
+document.addEventListener('DOMContentLoaded', function() {
+  checkIfInWishlist();
+});
+</script>
+{% endblock %}

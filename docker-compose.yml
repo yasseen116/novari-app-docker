@@ -1,0 +1,59 @@
+version: '2.4'
+
+services:
+  novari-app:
+    build: .
+    container_name: novari-app
+    command: ["./wait-for-db.sh", "gunicorn", "-w", "4", "-k", "gthread", "-b", "0.0.0.0:8001", "--threads", "2", "--timeout", "120", "main:app"]
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=mysql+pymysql://novari_user:novari-pass-2024@novari-db:3306/novari_db
+    volumes:
+      - ./uploads:/app/uploads
+      - ./db:/app/db
+    depends_on:
+      novari-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - novari-network
+      - proxy-network
+
+  novari-db:
+    image: mysql:8.0
+    container_name: novari-db
+    restart: always
+    command: >
+      --max_connections=300
+      --innodb-buffer-pool-size=512M
+      --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_ROOT_PASSWORD=novari-root-2024
+      - MYSQL_DATABASE=novari_db
+      - MYSQL_USER=novari_user
+      - MYSQL_PASSWORD=novari-pass-2024
+      - MYSQL_INIT_CONNECT=SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=novari-root-2024"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - novari-network
+
+networks:
+  novari-network:
+    driver: bridge
+  proxy-network:
+    external: true
+

@@ -1,0 +1,457 @@
+{% extends 'base.html' %}
+{% block body %}
+
+<!-- Cart Items -->
+<main class="container py-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">Your Shopping Cart</h2>
+                <span class="badge bg-primary">{{ cart_items|length if cart_items else 0 }} items</span>
+            </div>
+
+            {% if cart_items and cart_items|length > 0 %}
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Size</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set grand_total = namespace(value=0) %}
+                                {% for item in cart_items %}
+                                {% set item_total = item.quantity * item.product.productPrice %}
+                                {% set grand_total.value = grand_total.value + item_total %}
+                                <tr id="cart-item-{{ item.cartID }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if item.product.photos and item.product.photos[0].image_url %}
+                                              <img src="{{ url_for('static', filename='uploads/' ~ item.product.photos[0].image_url) }}" 
+                                                   alt="{{ item.product.productName }}" 
+                                                   class="img-fluid rounded me-3" 
+                                                   style="width: 60px; height: 60px; object-fit: cover;">
+                                            {% else %}
+                                              <img src="{{ url_for('static', filename='img/default.jpg') }}" 
+                                                   alt="{{ item.product.productName }}" 
+                                                   class="img-fluid rounded me-3" 
+                                                   style="width: 60px; height: 60px; object-fit: cover;">
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-0">{{ item.product.productName }}</h6>
+                                                <small class="text-muted">SKU: {{ item.product.pID }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ item.size.size_label }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="input-group" style="width: 120px;">
+                                            <button class="btn btn-outline-secondary" 
+                                                    onclick="updateQuantity({{ item.cartID }}, -1)">-</button>
+                                            <input type="text" class="form-control text-center" id="qty-{{ item.cartID }}"
+                                                   value="{{ item.quantity }}" 
+                                                   onchange="updateQuantityFromInput({{ item.cartID }}, this.value)"
+                                                   min="1" max="10">
+                                            <button class="btn btn-outline-secondary" 
+                                                    onclick="updateQuantity({{ item.cartID }}, 1)">+</button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span id="price-{{ item.cartID }}">EGP {{ '%.2f'|format(item.product.productPrice) }}</span>
+                                    </td>
+                                    <td class="fw-bold" id="total-{{ item.cartID }}">
+                                        EGP {{ '%.2f'|format(item_total) }}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="removeCartItem({{ item.cartID }})">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-shopping-cart fa-4x text-muted mb-4"></i>
+                    <h4 class="mb-3">Your cart is empty</h4>
+                    <p class="text-muted mb-4">Browse our collection and add some items to your cart</p>
+                    <a href="{{ url_for('views.shop') }}" class="btn btn-primary">
+                        Continue Shopping
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if cart_items and cart_items|length > 0 %}
+        <div class="col-lg-4 mt-4 mt-lg-0">
+            <div class="card shadow-sm">
+                <div class="card-body order-summary">
+                    <h5 class="card-title mb-4">Order Summary</h5>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span id="subtotal-value">EGP {{ '%.2f'|format(grand_total.value) }}</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping:</span>
+                        <span class="text-success">Free</span>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between fw-bold mb-4">
+                        <span>Total:</span>
+                        <span id="grand-total-value">EGP {{ '%.2f'|format(grand_total.value) }}</span>
+                    </div>
+                    
+                    <a href="{{ url_for('views.checkout') }}" class="btn btn-primary w-100 py-2 mb-3">
+                        Proceed to Checkout
+                    </a>
+                    
+                    <div class="text-center">
+                        <small class="text-muted">or</small>
+                    </div>
+                    
+                    <a href="{{ url_for('views.shop') }}" class="btn btn-outline-secondary w-100 py-2 mt-2">
+                        Continue Shopping
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mt-3">
+                <div class="card-body">
+                    <h6 class="mb-3"><i class="fas fa-tag me-2 text-primary"></i>Promo Code</h6>
+                    <div class="input-group mb-2">
+                        <input type="text" id="promo-code" class="form-control" placeholder="Enter promo code">
+                        <button class="btn btn-outline-primary" type="button" onclick="applyPromoCode()">Apply</button>
+                    </div>
+                    <div id="promo-message" class="small"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</main>
+
+<!-- Alert for notifications -->
+<div id="alert-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 350px;"></div>
+
+<script>
+// Current date and time 
+const currentDateTime = "2025-05-08 01:37:53";
+const currentUser = "jojo2500";
+console.log(`Cart page loaded by ${currentUser} at ${currentDateTime}`);
+
+// Initialize cart data
+const cartItems = {};
+
+// Initialize cart data from server-rendered page
+{% if cart_items %}
+{% for item in cart_items %}
+cartItems[{{ item.cartID }}] = {
+    id: {{ item.cartID }},
+    price: {{ item.product.productPrice }},
+    quantity: {{ item.quantity }}
+};
+{% endfor %}
+{% endif %}
+
+// Update quantity function
+function updateQuantity(itemId, change) {
+    const qtyInput = document.getElementById(`qty-${itemId}`);
+    let newQty = parseInt(qtyInput.value) + change;
+    
+    // Ensure quantity is between 1 and 10
+    if (newQty < 1) newQty = 1;
+    if (newQty > 10) newQty = 10;
+    
+    // Update input value
+    qtyInput.value = newQty;
+    
+    // Update cart data
+    cartItems[itemId].quantity = newQty;
+    
+    // Update item total and summary
+    updateItemTotal(itemId);
+    updateOrderSummary();
+    
+    // Call backend to update cart
+    updateCartOnServer(itemId, newQty);
+}
+
+// Update quantity from direct input
+function updateQuantityFromInput(itemId, value) {
+    let newQty = parseInt(value);
+    
+    // Validate input
+    if (isNaN(newQty) || newQty < 1) newQty = 1;
+    if (newQty > 10) newQty = 10;
+    
+    // Update input value to validated quantity
+    document.getElementById(`qty-${itemId}`).value = newQty;
+    
+    // Update cart data
+    cartItems[itemId].quantity = newQty;
+    
+    // Update item total and summary
+    updateItemTotal(itemId);
+    updateOrderSummary();
+    
+    // Call backend to update cart
+    updateCartOnServer(itemId, newQty);
+}
+
+// Calculate and update item total
+function updateItemTotal(itemId) {
+    const item = cartItems[itemId];
+    if (!item) return;
+    
+    const total = item.price * item.quantity;
+    document.getElementById(`total-${itemId}`).textContent = `EGP ${total.toFixed(2)}`;
+}
+
+// Update order summary
+function updateOrderSummary() {
+    let subtotal = 0;
+    
+    // Calculate subtotal from all items in cart
+    Object.values(cartItems).forEach(item => {
+        subtotal += item.price * item.quantity;
+    });
+    
+    // Update subtotal and grand total
+    document.getElementById('subtotal-value').textContent = `EGP ${subtotal.toFixed(2)}`;
+    
+    // Check if there's a discount applied
+    const discountElement = document.querySelector('#discount-row span:last-child');
+    if (discountElement) {
+        // Extract discount amount (without the minus sign)
+        const discountText = discountElement.textContent;
+        const discountAmount = parseFloat(discountText.replace(/[^0-9.]/g, ''));
+        
+        // Update grand total with discount
+        const grandTotal = subtotal - discountAmount;
+        document.getElementById('grand-total-value').textContent = `EGP ${grandTotal.toFixed(2)}`;
+    } else {
+        // No discount, grand total equals subtotal
+        document.getElementById('grand-total-value').textContent = `EGP ${subtotal.toFixed(2)}`;
+    }
+}
+
+// Remove item from cart
+function removeCartItem(itemId) {
+    // Call backend to remove item
+    fetch('/api/cart/remove', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ item_id: itemId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Animate removal
+            const itemRow = document.getElementById(`cart-item-${itemId}`);
+            itemRow.style.transition = 'all 0.3s';
+            itemRow.style.opacity = '0';
+            
+            // Remove from DOM and update calculations
+            setTimeout(() => {
+                itemRow.remove();
+                
+                // Remove from cart data
+                delete cartItems[itemId];
+                
+                // Update summary
+                updateOrderSummary();
+                
+                // Update item count badge
+                updateCartBadge(Object.keys(cartItems).length);
+                
+                // If cart is now empty, reload page
+                if (Object.keys(cartItems).length === 0) {
+                    location.reload();
+                }
+                
+                // Show success message
+                showAlert('Item removed from cart', 'success');
+            }, 300);
+        } else {
+            showAlert('Failed to remove item: ' + (data.message || 'Unknown error'), 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error removing item:', error);
+        showAlert('Error removing item. Please try again.', 'danger');
+    });
+}
+
+// Update cart on server
+function updateCartOnServer(itemId, quantity) {
+    fetch('/api/cart/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            item_id: itemId,
+            quantity: quantity
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            showAlert('Failed to update cart: ' + (data.message || 'Unknown error'), 'warning');
+            
+            // Revert to server-side quantity if update failed
+            if (data.current_quantity) {
+                document.getElementById(`qty-${itemId}`).value = data.current_quantity;
+                cartItems[itemId].quantity = data.current_quantity;
+                updateItemTotal(itemId);
+                updateOrderSummary();
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error updating cart:', error);
+        showAlert('Error updating cart. Changes may not be saved.', 'warning');
+    });
+}
+
+// Update cart badge in navigation
+function updateCartBadge(count) {
+    const cartBadge = document.querySelector('.badge-cart');
+    if (cartBadge) {
+        if (count > 0) {
+            cartBadge.textContent = count;
+            cartBadge.style.display = 'inline-block';
+        } else {
+            cartBadge.style.display = 'none';
+        }
+    }
+}
+
+// Apply promo code
+function applyPromoCode() {
+    const promoCode = document.getElementById('promo-code').value.trim();
+    const messageEl = document.getElementById('promo-message');
+    
+    if (!promoCode) {
+        messageEl.textContent = 'Please enter a promo code';
+        messageEl.className = 'small text-danger';
+        return;
+    }
+    
+    // Reset message
+    messageEl.textContent = 'Applying...';
+    messageEl.className = 'small text-muted';
+    
+    // Calculate current subtotal
+    let subtotal = 0;
+    Object.values(cartItems).forEach(item => {
+        subtotal += item.price * item.quantity;
+    });
+    
+    fetch('/api/cart/apply-promo', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            code: promoCode,
+            subtotal: subtotal // Send current subtotal for validation
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            messageEl.textContent = data.message || 'Promo code applied!';
+            messageEl.className = 'small text-success';
+            
+            // Find or create discount row
+            const discountAmount = data.discount_amount || (subtotal * 0.1); // Default 10% if not provided
+            let discountRow = document.getElementById('discount-row');
+            
+            if (!discountRow) {
+                // Find where to insert discount row
+                const orderSummary = document.querySelector('.order-summary');
+                const hr = orderSummary.querySelector('hr');
+                
+                // Create discount row
+                discountRow = document.createElement('div');
+                discountRow.id = 'discount-row';
+                discountRow.className = 'd-flex justify-content-between mb-2 text-success';
+                discountRow.innerHTML = `
+                    <span>Discount:</span>
+                    <span>-EGP ${discountAmount.toFixed(2)}</span>
+                `;
+                
+                // Insert before HR
+                hr.before(discountRow);
+            } else {
+                // Update existing discount row
+                discountRow.querySelector('span:last-child').textContent = `-EGP ${discountAmount.toFixed(2)}`;
+            }
+            
+            // Update grand total
+            const grandTotal = subtotal - discountAmount;
+            document.getElementById('grand-total-value').textContent = `EGP ${grandTotal.toFixed(2)}`;
+            
+            showAlert('Promo code applied successfully!', 'success');
+        } else {
+            messageEl.textContent = data.message || 'Invalid promo code';
+            messageEl.className = 'small text-danger';
+            showAlert('Failed to apply promo code: ' + (data.message || 'Invalid code'), 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error applying promo code:', error);
+        messageEl.textContent = 'Error applying code. Please try again.';
+        messageEl.className = 'small text-danger';
+        showAlert('Error applying promo code. Please try again.', 'danger');
+    });
+}
+
+// Show alert notification
+function showAlert(message, type = 'info') {
+    const alertHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    const alertContainer = document.getElementById('alert-container');
+    const alertElement = document.createElement('div');
+    alertElement.innerHTML = alertHTML;
+    alertContainer.appendChild(alertElement.firstElementChild);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        const alerts = alertContainer.querySelectorAll('.alert');
+        if (alerts.length > 0) {
+            alerts[0].remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

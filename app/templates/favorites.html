@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+{% block body %}
+<style>
+    /* Add custom styles for favorites */
+    .favorites-container {
+        min-height: 60vh;
+    }
+    .favorite-card {
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+    }
+    .favorite-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .empty-favorites {
+        text-align: center;
+        padding: 3rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    .product-thumbnail {
+        height: 180px;
+        object-fit: contain;
+    }
+    .remove-favorite {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255,255,255,0.8);
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+    }
+    .remove-favorite:hover {
+        background: rgba(220, 53, 69, 0.8);
+        color: white;
+    }
+    /* New success message style */
+    .added-message {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        animation: slideIn 0.5s, fadeOut 0.5s 2.5s forwards;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        min-width: 250px;
+    }
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+        to { opacity: 0; }
+    }
+    @media (max-width: 768px) {
+        .product-thumbnail {
+            height: 120px;
+        }
+        .added-message {
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            min-width: auto;
+        }
+    }
+    .loading-spinner {
+        display: flex;
+        justify-content: center;
+        padding: 3rem;
+    }
+</style>
+
+<main class="container py-5 favorites-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>My Favorites</h1>
+        <span class="badge bg-primary" id="favoritesCount">{{ favorites|length if favorites else 0 }}</span>
+    </div>
+    
+    {% if favorites and favorites|length > 0 %}
+    <!-- Favorites Grid -->
+    <div id="favoritesGrid" class="row g-4">
+        {% for item in favorites %}
+        <div class="col-lg-3 col-md-4 col-6" data-id="{{ item.product.pID }}">
+            <div class="favorite-card card h-100">
+                <div class="position-relative">
+                    <img src="{{ url_for('static', filename='uploads/' ~ item.product.photos[0].image_url) if item.product.photos else url_for('static', filename='img/default.jpg') }}" class="card-img-top product-thumbnail" alt="{{ item.product.productName }}">
+                    <button class="remove-favorite" onclick="removeFromFavorites({{ item.product.pID }})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ item.product.productName }}</h5>
+                    <p class="card-text text-danger fw-bold">EGP {{ '%.2f'|format(item.product.productPrice) }}</p>
+                    <div class="d-flex justify-content-between mt-3">
+                        <a href="/product/{{ item.product.pID }}.html" class="btn btn-sm btn-outline-primary flex-grow-1 me-1">View</a>
+                        <button class="btn btn-sm btn-warning flex-grow-1 ms-1" onclick="addToCartFromFavorites({{ item.product.pID }})">
+                            <i class="fas fa-cart-plus"></i> Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty state -->
+    <div id="emptyState" class="empty-favorites">
+        <i class="fas fa-heart" style="font-size: 3rem; color: #ddd;"></i>
+        <h3 class="mt-3">Your favorites list is empty</h3>
+        <p class="text-muted">Add items to your favorites while shopping</p>
+        <a href="{{ url_for('views.shop') }}" class="btn btn-primary mt-3">Browse Products</a>
+    </div>
+    {% endif %}
+</main>
+
+<script>
+    // Current date and time 
+    const currentDateTime = "2025-05-08 02:12:55";
+    const currentUser = "jojo2500";
+    console.log(`Favorites page loaded by ${currentUser} at ${currentDateTime}`);
+
+    // Display success message if coming from product page
+    function checkUrlForSuccess() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const added = urlParams.get('added');
+        const productName = urlParams.get('product');
+        
+        if (added === 'true' && productName) {
+            showToast(`${decodeURIComponent(productName)} added to favorites!`, 'success');
+            // Clean URL without reload
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        checkUrlForSuccess();
+    });
+
+    // Remove from favorites (AJAX)
+    async function removeFromFavorites(productId) {
+        try {
+            const response = await fetch('/remove-from-wishlist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ product_id: productId })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Remove from UI
+                const itemElement = document.querySelector(`[data-id="${productId}"]`);
+                if (itemElement) {
+                    itemElement.style.transition = 'all 0.3s';
+                    itemElement.style.opacity = '0';
+                    itemElement.style.transform = 'scale(0.8)';
+                    
+                    setTimeout(() => {
+                        itemElement.remove();
+                        // Update count
+                        const favoritesCount = document.getElementById('favoritesCount');
+                        const newCount = parseInt(favoritesCount.textContent) - 1;
+                        favoritesCount.textContent = newCount;
+                        // Update favorites badge in navigation if it exists
+                        const navBadge = document.querySelector('.favorites-count');
+                        if (navBadge) {
+                            navBadge.textContent = newCount;
+                            if (newCount === 0) {
+                                navBadge.style.display = 'none';
+                            }
+                        }
+                        // Show empty state if no more items
+                        if (newCount === 0) {
+                            document.getElementById('favoritesGrid').classList.add('d-none');
+                            document.getElementById('emptyState').classList.remove('d-none');
+                        }
+                    }, 300);
+                    showToast('Item removed from favorites', 'info');
+                }
+            } else {
+                showToast(data.message || 'Error removing item', 'danger');
+            }
+        } catch (error) {
+            console.error('Error removing from favorites:', error);
+            showToast('Error removing item. Please try again.', 'danger');
+        }
+    }
+
+    // Add to cart from favorites
+    async function addToCartFromFavorites(productId) {
+        // Show a size selector modal first, since we need a size for the product
+        const sizeSelectorHTML = `
+            <div class="modal fade" id="sizeModal${productId}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Select Size</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="size-options-grid">
+                                <button class="size-option" data-size="XS">XS</button>
+                                <button class="size-option" data-size="S">S</button>
+                                <button class="size-option" data-size="M">M</button>
+                                <button class="size-option" data-size="L">L</button>
+                                <button class="size-option" data-size="XL">XL</button>
+                                <button class="size-option" data-size="XXL">XXL</button>
+                            </div>
+                            <div class="mt-3">
+                                <label for="quantity${productId}" class="form-label">Quantity:</label>
+                                <select id="quantity${productId}" class="form-select" style="width:100px;">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="addToCartBtn${productId}" disabled>
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to the document
+        const modalDiv = document.createElement('div');
+        modalDiv.innerHTML = sizeSelectorHTML;
+        document.body.appendChild(modalDiv);
+        
+        // Initialize the modal
+        const sizeModal = new bootstrap.Modal(document.getElementById(`sizeModal${productId}`));
+        sizeModal.show();
+        
+        // Set up size selection
+        const sizeOptions = document.querySelectorAll(`#sizeModal${productId} .size-option`);
+        const addToCartBtn = document.getElementById(`addToCartBtn${productId}`);
+        
+        sizeOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                sizeOptions.forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                addToCartBtn.disabled = false;
+            });
+        });
+        
+        // Add to cart when button is clicked
+        addToCartBtn.addEventListener('click', async () => {
+            const selectedSize = document.querySelector(`#sizeModal${productId} .size-option.active`);
+            if (!selectedSize) {
+                return;
+            }
+            
+            const size = selectedSize.dataset.size;
+            const quantity = document.getElementById(`quantity${productId}`).value;
+            
+            // Disable button and show loading
+            addToCartBtn.disabled = true;
+            addToCartBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+            
+            try {
+                const response = await fetch('/add-to-cart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        product_id: productId,
+                        size: size,
+                        quantity: quantity
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    sizeModal.hide();
+                    // Remove modal from DOM after closing
+                    document.getElementById(`sizeModal${productId}`).addEventListener('hidden.bs.modal', function () {
+                        this.remove();
+                    });
+                    
+                    // Update cart badge if it exists
+                    if (data.cart_count) {
+                        const cartBadge = document.querySelector('.badge-cart');
+                        if (cartBadge) {
+                            cartBadge.textContent = data.cart_count;
+                            cartBadge.style.display = 'inline-block';
+                        }
+                    }
+                    
+                    showToast('Item added to cart!', 'success');
+                } else {
+                    addToCartBtn.disabled = false;
+                    addToCartBtn.innerHTML = 'Add to Cart';
+                    showToast(data.message || 'Error adding to cart', 'danger');
+                }
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                addToCartBtn.disabled = false;
+                addToCartBtn.innerHTML = 'Add to Cart';
+                showToast('Error adding to cart. Please try again.', 'danger');
+            }
+        });
+    }
+
+    // Toast notification helper
+    function showToast(message, type = 'info') {
+        // Remove any existing toasts
+        const existingToasts = document.querySelectorAll('.added-message');
+        existingToasts.forEach(toast => toast.remove());
+        
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type} added-message`;
+        toast.innerHTML = `
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'danger' ? 'fa-exclamation-circle' : 'fa-info-circle'} me-2"></i>
+            ${message}
+        `;
+        
+        // Add to body and auto-remove
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 500);
+        }, 3000);
+    }
+</script>
+
+<style>
+/* Additional styles for size selector modal */
+.modal .size-options-grid { 
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+}
+
+.modal .size-option {
+    padding: 10px 5px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.modal .size-option:hover {
+    border-color: #888;
+}
+
+.modal .size-option.active {
+    background: #000;
+    color: white;
+    border-color: #000;
+}
+</style>
+{% endblock %}

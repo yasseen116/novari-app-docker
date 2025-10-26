@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Novari - Modern clothing for your wardrobe. Discover stylish pieces for every occasion.">
+    <title>{{ pagetitle }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/4.2.0/mustache.min.js"></script>
+    <style>
+        /* Enhanced Styling */
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        main {
+            flex: 1 0 auto;
+        }
+        
+        h1, h2, h3, h4, h5, h6, .navbar-brand {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        /* Header Top Bar */
+        .header-top {
+            background-color: #f5f5f5;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+        
+        .header-top-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-top-left p {
+            margin-bottom: 0;
+            color: #666;
+        }
+        
+        .header-top-left i {
+            margin-right: 8px;
+            color: #212529;
+        }
+        
+        .header-top-right {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .header-top-menu {
+            list-style: none;
+            display: flex;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .header-top-menu li {
+            margin-left: 15px;
+        }
+        
+        .header-top-menu a {
+            color: #666;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .header-top-menu a:hover {
+            color: #212529;
+        }
+        
+        /* Main Navbar */
+        .navbar {
+            background-color: #212529;
+            padding: 15px 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+        }
+        
+        .nav-link {
+            font-weight: 500;
+            padding: 8px 15px !important;
+            position: relative;
+            transition: color 0.3s;
+        }
+        
+        .nav-link:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            background: #fff;
+            left: 0;
+            bottom: 0;
+            transition: width 0.3s;
+        }
+        
+        .nav-link:hover:after, .nav-link.active:after {
+            width: 100%;
+        }
+        
+        /* Search Styling */
+        .search-wrapper {
+            position: relative;
+        }
+        
+        .search-form {
+            display: flex;
+            position: relative;
+        }
+        
+        .search-input {
+            border-radius: 20px;
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        
+        .search-input:focus {
+            border-color: #212529;
+            box-shadow: 0 0 0 0.2rem rgba(33, 37, 41, 0.15);
+        }
+        
+        #searchInput {
+            width: 0;
+            padding: 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            min-width: 200px;
+        }
+        
+        #searchInput::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        #searchBarContainer.show-search #searchInput {
+            width: 200px;
+            padding: 8px 15px 8px 35px;
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .search-wrapper::before {
+            content: '\f002';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #searchBarContainer.show-search .search-wrapper::before {
+            opacity: 1;
+        }
+        
+        #searchResults {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        /* Cart Badge Styling */
+        .cart-icon, .nav-icon {
+            position: relative;
+            display: inline-block;
+            color: #fff;
+            font-size: 18px;
+            margin-left: 15px;
+            transition: color 0.3s;
+        }
+        
+        .cart-icon:hover, .nav-icon:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .badge-cart, .cart-count, .favorites-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            padding: 0.25rem 0.45rem;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            font-weight: 700;
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        /* Dropdown Menu */
+        .dropdown-menu {
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: none;
+            padding: 8px 0;
+            margin-top: 10px;
+        }
+        
+        .dropdown-item {
+            padding: 8px 20px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        
+        .dropdown-item i {
+            margin-right: 10px;
+            width: 18px;
+            text-align: center;
+        }
+        
+        .dropdown-item:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Mobile Menu */
+        @media (max-width: 991.98px) {
+            .navbar-collapse {
+                background-color: #212529;
+                padding: 15px;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            
+            #searchBarContainer.show-search {
+                margin: 10px 0;
+            }
+            
+            .header-top {
+                display: none;
+            }
+        }
+        
+        /* Footer Styles */
+        footer {
+            background-color: #7a5f4b;
+            color: #f4e8d5;
+            padding: 60px 0 20px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        footer h5 {
+            font-family: 'Georgia', serif;
+            margin-bottom: 25px;
+            font-weight: 700;
+            color: #f4e8d5;
+            position: relative;
+        }
+        
+        footer h5:after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -10px;
+            width: 40px;
+            height: 2px;
+            background-color: #f4e8d5;
+        }
+        
+        footer p {
+            line-height: 1.8;
+            margin-bottom: 25px;
+            color: rgba(244, 232, 213, 0.8);
+        }
+        
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .social-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(244, 232, 213, 0.1);
+            color: #f4e8d5;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .social-icon:hover {
+            transform: translateY(-3px);
+            background: rgba(244, 232, 213, 0.2);
+        }
+        
+        .footer-link {
+            color: rgba(244, 232, 213, 0.8);
+            text-decoration: none;
+            display: block;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .footer-link:hover {
+            color: #f4e8d5;
+            padding-left: 5px;
+        }
+        
+        .contact-info li {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            color: rgba(244, 232, 213, 0.8);
+        }
+        
+        .contact-info i {
+            margin-right: 15px;
+            margin-top: 4px;
+        }
+        
+        .footer-bottom {
+            padding-top: 20px;
+            border-top: 1px solid rgba(244, 232, 213, 0.1);
+            margin-top: 40px;
+        }
+        
+        .footer-bottom p {
+            margin-bottom: 0;
+        }
+        
+        @media (max-width: 767.98px) {
+            footer {
+                padding: 40px 0 20px;
+            }
+            
+            footer h5 {
+                margin-top: 30px;
+            }
+            
+            .footer-bottom .text-md-end {
+                text-align: left !important;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Top Bar -->
+    <div class="header-top d-none d-md-block">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-12 text-center">
+                    <div class="header-top-left justify-content-center">
+                        <p><i class="fas fa-truck"></i> Free shipping on orders over 1000 EGP</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Enhanced Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+      <div class="container">
+        <a class="navbar-brand" href="{{ url_for('views.homepage') }}">NOVARI</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'views.homepage' %}active{% endif %}" 
+                       href="{{ url_for('views.homepage') }}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'views.shop' %}active{% endif %}" 
+                       href="{{ url_for('views.shop') }}">Shop</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'views.favorites' %}active{% endif %}" 
+                       href="{{ url_for('views.favorites') }}">Favorites</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'views.contact' %}active{% endif %}" 
+                       href="{{ url_for('views.contact') }}">Contact</a>
+                </li>
+                <!-- Search Icon and Bar in one flex nav-item -->
+                <li class="nav-item d-flex align-items-center" style="position:relative;">
+                  <a class="nav-link p-0" href="#" id="coolSearchIcon" title="Search" style="z-index:1060;">
+                    <i class="fas fa-search"></i>
+                  </a>
+                  <div class="cool-search-wrapper d-none" id="coolSearchBarWrapper" style="min-width:240px;">
+                    <input type="text" id="coolSearchInput" class="form-control" placeholder="Search for products...">
+                    <div id="coolSearchResults" class="cool-search-results"></div>
+                    </div>
+                </li>
+                <!-- Cart -->
+                <li class="nav-item mx-1">
+                    <a class="nav-link cart-icon" href="{{ url_for('views.cart') }}">
+                        <i class="fas fa-shopping-cart"></i>
+                        {% if cart_count and cart_count > 0 %}
+                        <span class="badge bg-danger badge-cart">{{ cart_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+              
+                <!-- Authentication -->
+                {% if not current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'auth.signup' %}active{% endif %}" 
+                           href="{{ url_for('auth.signup') }}">Signup</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}" 
+                           href="{{ url_for('auth.login') }}">Login</a>
+                    </li>
+                {% else %}
+                    <!-- Account Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" 
+                           id="acctDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i>
+                            <span>Account</span>
+                            {% if current_user.is_admin %}
+                                <span class="badge bg-warning ms-2">Admin</span>
+                            {% endif %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="acctDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint == 'views.profile' %}active{% endif %}" 
+                                   href="{{ url_for('views.profile') }}">
+                                    <i class="fas fa-user-cog"></i> Profile
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint == 'views.orders' %}active{% endif %}" 
+                                   href="{{ url_for('views.orders') }}">
+                                    <i class="fas fa-box"></i> Orders
+                                </a>
+                            </li>
+                            
+                            <!-- Admin-specific links -->
+                            {% if current_user.is_admin %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'admin.dashboard' %}active{% endif %}" 
+                                       href="{{ url_for('admin.dashboard') }}">
+                                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'admin.products' %}active{% endif %}" 
+                                       href="{{ url_for('admin.products') }}">
+                                        <i class="fas fa-boxes"></i> Manage Products
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'admin.orders' %}active{% endif %}" 
+                                       href="{{ url_for('admin.orders') }}">
+                                        <i class="fas fa-shopping-cart"></i> Manage Orders
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'admin.users' %}active{% endif %}" 
+                                       href="{{ url_for('admin.users') }}">
+                                        <i class="fas fa-users"></i> Manage Users
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                {% endif %}
+              </ul>
+        </div>
+      </div>
+    </nav>
+    
+    <!-- alerts - keeping original structure -->
+    {% for message in get_flashed_messages() %}
+      <div class="alert alert-success alert-dismissible fade show mt-2" role="alert">
+        <strong>{{ message }}</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+
+    <main>
+        {% block body %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 mb-4 mb-lg-0">
+                    <h5 class="text-uppercase">NOVARI</h5>
+                    <p>Fashion for the modern lifestyle. Quality materials and contemporary designs for every occasion.</p>
+                    <div class="social-icons">
+                        <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-pinterest"></i></a>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6 mb-4 mb-md-0">
+                    <h5 class="text-uppercase">Shop</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('views.shop') }}?category=women" class="footer-link">Women</a></li>
+                        <li><a href="{{ url_for('views.shop') }}?category=men" class="footer-link">Men</a></li>
+                        <li><a href="{{ url_for('views.shop') }}?category=accessories" class="footer-link">Accessories</a></li>
+                        <li><a href="{{ url_for('views.shop') }}?onSale=true" class="footer-link">Sale</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6 mb-4 mb-md-0">
+                    <h5 class="text-uppercase">Support</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('views.contact') }}" class="footer-link">Contact Us</a></li>
+                        <li><a href="#" class="footer-link">Shipping Info</a></li>
+                        <li><a href="#" class="footer-link">Returns</a></li>
+                        <li><a href="#" class="footer-link">FAQs</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4 col-md-4">
+                    <h5 class="text-uppercase">Contact</h5>
+                    <ul class="list-unstyled contact-info">
+                        <li><i class="fas fa-map-marker-alt"></i> 123 Fashion St, New York, NY</li>
+                        <li><i class="fas fa-phone"></i> (123) 456-7890</li>
+                        <li><i class="fas fa-envelope"></i> info@novari.com</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom pt-4 mt-4">
+                <div class="row">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <p>&copy; 2025 Novari. All rights reserved.</p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <a href="#" class="footer-link me-3 d-inline-block">Privacy Policy</a>
+                        <a href="#" class="footer-link d-inline-block">Terms of Service</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        // Improved search functionality
+        const searchToggle = document.getElementById('coolSearchIcon');
+        const searchContainer = document.getElementById('coolSearchBarWrapper');
+        const searchInput = document.getElementById('coolSearchInput');
+        const searchResults = document.getElementById('coolSearchResults');
+        const searchForm = document.querySelector('.search-form');
+        
+        // Toggle search bar visibility
+        if (searchToggle && searchContainer) {
+          searchToggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            searchContainer.classList.toggle('d-none');
+            searchContainer.classList.toggle('show-search');
+            
+            if (!searchContainer.classList.contains('d-none') && searchInput) {
+              setTimeout(() => searchInput.focus(), 300);
+                }
+            });
+        }
+        
+        // Close search when clicking outside
+        document.addEventListener('click', (e) => {
+          if (searchContainer && searchContainer.classList.contains('show-search') && 
+              !searchContainer.contains(e.target) && !searchToggle.contains(e.target)) {
+            searchContainer.classList.add('d-none');
+            searchContainer.classList.remove('show-search');
+          }
+                    });
+                    
+        // Handle search input and form submission
+        if (searchInput) {
+          searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Escape') {
+              searchContainer.classList.add('d-none');
+              searchContainer.classList.remove('show-search');
+            } else if (e.key === 'Enter' && searchInput.value.trim()) {
+              searchForm.submit();
+            }
+          });
+        }
+        
+        // Make the navbar highlight the current page
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('.nav-link');
+        
+        navLinks.forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
+      });
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

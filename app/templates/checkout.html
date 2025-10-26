@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="container py-5">
+  <h2 class="mb-4">Checkout</h2>
+  <form method="POST">
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label for="name" class="form-label">Full Name</label>
+          <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+        <div class="mb-3">
+          <label for="email" class="form-label">Email</label>
+          <input type="email" class="form-control" id="email" name="email" required>
+        </div>
+        <div class="mb-3">
+          <label for="address" class="form-label">Shipping Address</label>
+          <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Payment Method</label><br>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="payment_type" id="cod" value="cod" checked>
+            <label class="form-check-label" for="cod">Cash on Delivery</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="payment_type" id="card" value="card">
+            <label class="form-check-label" for="card">Credit Card</label>
+          </div>
+        </div>
+        <div class="mb-3" id="card-info" style="display:none;">
+          <label class="form-label">Test Card Info (Stripe)</label>
+          <div class="alert alert-info">Use card: <b>4242 4242 4242 4242</b> | Any future date | Any CVC</div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <h5>Order Summary</h5>
+        <ul class="list-group mb-3">
+          {% set ns = namespace(grand_total=0) %}
+          {% for item in cart_items %}
+          {% set total = item.quantity * item.product.productPrice %}
+          {% set ns.grand_total = ns.grand_total + total %}
+          <li class="list-group-item d-flex justify-content-between lh-sm">
+            <div>
+              <h6 class="my-0">{{ item.product.productName }}</h6>
+              <small class="text-muted">Size: {{ item.size.size_label }}</small>
+            </div>
+            <span class="text-muted">EGP {{ '%.2f'|format(total) }}</span>
+          </li>
+          {% endfor %}
+          <li class="list-group-item d-flex justify-content-between">
+            <span>Total (EGP)</span>
+            <strong>{{ '%.2f'|format(ns.grand_total) }}</strong>
+          </li>
+        </ul>
+        <button type="submit" class="btn btn-primary w-100">Pay & Place Order</button>
+      </div>
+    </div>
+  </form>
+</div>
+<script>
+const codRadio = document.getElementById('cod');
+const cardRadio = document.getElementById('card');
+const cardInfo = document.getElementById('card-info');
+codRadio.addEventListener('change', function() {
+  if (codRadio.checked) cardInfo.style.display = 'none';
+});
+cardRadio.addEventListener('change', function() {
+  if (cardRadio.checked) cardInfo.style.display = 'block';
+});
+</script>
+{% endblock %}
