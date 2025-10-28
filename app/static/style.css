@@ -38,10 +38,34 @@ body {
     border-radius: 10px;
     overflow: hidden;
     transition: transform 0.3s ease-in-out;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .product-card:hover {
     transform: scale(1.05);
+}
+
+.product-card:focus-visible {
+    outline: 3px solid #4e3d30;
+    outline-offset: 4px;
+}
+
+.product-card:focus-within {
+    box-shadow: 0 0 0 3px rgba(78, 61, 48, 0.35);
+}
+
+.product-card-link {
+    flex: 1 1 auto;
+    color: inherit;
+    text-decoration: none;
+}
+
+.product-card-link:focus-visible {
+    outline: 3px solid #4e3d30;
+    outline-offset: 4px;
+    border-radius: 10px;
 }
 
 .product-card img, .product-image {
@@ -51,6 +75,33 @@ body {
 
 .product-card:hover img, .product-card:hover .product-image {
     transform: scale(1.1);
+}
+
+.product-actions {
+    margin-top: auto;
+}
+
+.product-card .quick-view-btn {
+    display: inline-block;
+    background-color: #4e3d30;
+    color: #fff;
+    padding: 0.5rem 1.25rem;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.product-card .quick-view-btn:hover,
+.product-card .quick-view-btn:focus-visible {
+    background-color: #7a5f4b;
+    color: #fff;
+}
+
+.product-card .quick-view-btn:focus-visible {
+    outline: 3px solid #d9c2a3;
+    outline-offset: 2px;
 }
 
 /* Buttons */
