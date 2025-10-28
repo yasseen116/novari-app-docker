@@ -7,22 +7,26 @@
     <div class="row g-4">
         {% for product in products %}
         <div class="col-lg-3 col-md-4 col-sm-6">
-            <div class="product-card shadow-sm" onclick="window.location.href='{{ url_for('views.product_details', pID=product.pID) }}'" style="cursor:pointer;">
-                <div class="product-image-container position-relative overflow-hidden">
-                    {% if product.photos %}
-                    <img src="{{ product.photos[0].image_url }}" class="product-image w-100" alt="{{ product.productName }}">
-                    {% else %}
-                    <img src="{{ url_for('static', filename='img/default.jpg') }}" class="product-image w-100" alt="{{ product.productName }}">
-                    {% endif %}
-                    <button class="quick-view-btn" onclick="event.stopPropagation(); window.location.href='{{ url_for('views.product_details', pID=product.pID) }}'">
+            <article class="product-card shadow-sm">
+                <a class="product-card-link d-flex flex-column text-decoration-none h-100" href="{{ url_for('views.product_details', pID=product.pID) }}" aria-label="View details for {{ product.productName }}">
+                    <div class="product-image-container position-relative overflow-hidden">
+                        {% if product.photos %}
+                        <img src="{{ product.photos[0].image_url }}" class="product-image w-100" alt="{{ product.productName }}">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='img/default.jpg') }}" class="product-image w-100" alt="{{ product.productName }}">
+                        {% endif %}
+                    </div>
+                    <div class="product-info text-center mt-2">
+                        <h5 class="product-title mb-1 text-dark text-truncate fw-semibold">{{ product.productName }}</h5>
+                        <p class="product-price text-muted mb-0">EGP {{ "%.2f"|format(product.productPrice) }}</p>
+                    </div>
+                </a>
+                <div class="product-actions text-center mt-3">
+                    <a class="quick-view-btn" href="{{ url_for('views.product_details', pID=product.pID) }}" aria-label="Quick view for {{ product.productName }}">
                         Quick View
-                    </button>
+                    </a>
                 </div>
-                <div class="product-info text-center mt-2">
-                    <h5 class="product-title mb-1 text-dark text-truncate fw-semibold">{{ product.productName }}</h5>
-                    <p class="product-price text-muted mb-0">EGP {{ "%.2f"|format(product.productPrice) }}</p>
-                </div>
-            </div>
+            </article>
         </div>
         {% endfor %}
     </div>
