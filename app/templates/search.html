@@ -6,23 +6,8 @@
     {% if products %}
     <div class="row g-4">
         {% for product in products %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <div class="product-card shadow-sm" onclick="window.location.href='{{ url_for('views.product_details', pID=product.pID) }}'" style="cursor:pointer;">
-                <div class="product-image-container position-relative overflow-hidden">
-                    {% if product.photos %}
-                    <img src="{{ product.photos[0].image_url }}" class="product-image w-100" alt="{{ product.productName }}">
-                    {% else %}
-                    <img src="{{ url_for('static', filename='img/default.jpg') }}" class="product-image w-100" alt="{{ product.productName }}">
-                    {% endif %}
-                    <button class="quick-view-btn" onclick="event.stopPropagation(); window.location.href='{{ url_for('views.product_details', pID=product.pID) }}'">
-                        Quick View
-                    </button>
-                </div>
-                <div class="product-info text-center mt-2">
-                    <h5 class="product-title mb-1 text-dark text-truncate fw-semibold">{{ product.productName }}</h5>
-                    <p class="product-price text-muted mb-0">EGP {{ "%.2f"|format(product.productPrice) }}</p>
-                </div>
-            </div>
+        <div class="col-6 col-sm-6 col-md-4 col-lg-3">
+            {% include 'partials/product_card.html' with product=product, clickable=True, quick_view=True %}
         </div>
         {% endfor %}
     </div>

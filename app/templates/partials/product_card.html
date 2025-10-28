@@ -1,0 +1,31 @@
+{% set default_image = url_for('static', filename='img/default.jpg') %}
+{% set image_src = default_image %}
+{% if product.photos and product.photos[0].image_url %}
+  {% if product.photos[0].image_url.startswith('http') %}
+    {% set image_src = product.photos[0].image_url %}
+  {% else %}
+    {% set image_src = url_for('static', filename='uploads/' ~ product.photos[0].image_url) %}
+  {% endif %}
+{% endif %}
+
+<div class="product-card card h-100 shadow-sm position-relative{% if clickable %} product-card--clickable{% endif %}"
+     {% if clickable %}onclick="window.location.href='{{ url_for('views.product_details', pID=product.pID) }}'"{% endif %}>
+  <div class="product-image-container position-relative overflow-hidden">
+    <img src="{{ image_src }}" class="product-image w-100" alt="{{ product.productName }}">
+    {% if favorite_icon %}
+      <span class="favorite-icon position-absolute top-0 end-0 m-2" aria-hidden="true">
+        <i class="fas fa-heart"></i>
+      </span>
+    {% endif %}
+    {% if quick_view %}
+      <button class="quick-view-btn"
+              onclick="event.stopPropagation(); window.location.href='{{ url_for('views.product_details', pID=product.pID) }}'">
+        Quick View
+      </button>
+    {% endif %}
+  </div>
+  <div class="card-body product-info text-center">
+    <h5 class="product-title mb-1 text-dark text-truncate fw-semibold">{{ product.productName }}</h5>
+    <p class="product-price text-muted mb-0">EGP {{ "%.2f"|format(product.productPrice) }}</p>
+  </div>
+</div>
