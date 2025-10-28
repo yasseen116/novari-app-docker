@@ -85,7 +85,8 @@ class Product(db.Model):
             'category_id': self.category_id,
             'date_added': self.date_added.isoformat(),
             'is_featured': self.is_featured,
-            'images': [photo.image_url for photo in self.photos]  # Assuming each photo has an 'image_url' field
+            'images': [photo.image_url for photo in self.photos],  # Assuming each photo has an 'image_url' field
+            'sizes': [size.size_label for size in self.sizes]
         }
 
 # ----------------------------------

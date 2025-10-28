@@ -34,6 +34,77 @@ function saveCart(cart) {
   localStorage.setItem("cart", JSON.stringify(cart));
 }
 
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function normalizeSizes(product) {
+  if (!product) return [];
+
+  const rawSizes = Array.isArray(product.sizes)
+    ? product.sizes
+    : (typeof product.sizes === "string" ? product.sizes.split(",") : []);
+
+  let sizes = rawSizes
+    .map(size => {
+      if (typeof size === "string") return size.trim();
+      if (size && typeof size === "object") {
+        return (size.size_label || size.label || size.value || "").trim();
+      }
+      return "";
+    })
+    .filter(Boolean);
+
+  if (!sizes.length && Array.isArray(product.size_labels)) {
+    sizes = product.size_labels.map(size => String(size).trim()).filter(Boolean);
+  }
+
+  if (!sizes.length && Array.isArray(product.availableSizes)) {
+    sizes = product.availableSizes.map(size => String(size).trim()).filter(Boolean);
+  }
+
+  if (!sizes.length && typeof product.available_sizes === "string") {
+    sizes = product.available_sizes.split(",").map(size => size.trim()).filter(Boolean);
+  }
+
+  return sizes;
+}
+
+function resolveProductImage(product) {
+  const fallback = "/static/img/default.jpg";
+  if (!product) return fallback;
+
+  const candidates = [];
+  if (Array.isArray(product.images) && product.images.length) {
+    candidates.push(product.images[0]);
+  }
+  if (product.image) {
+    candidates.push(product.image);
+  }
+  if (product.image_url) {
+    candidates.push(product.image_url);
+  }
+  if (Array.isArray(product.photos) && product.photos.length) {
+    const firstPhoto = product.photos[0];
+    if (typeof firstPhoto === "string") {
+      candidates.push(firstPhoto);
+    } else if (firstPhoto && typeof firstPhoto === "object" && firstPhoto.image_url) {
+      candidates.push(firstPhoto.image_url);
+    }
+  }
+
+  const src = candidates.find(Boolean);
+  if (!src) return fallback;
+  if (src.startsWith("http")) return src;
+  if (src.startsWith("/static/")) return src;
+  return `/static/uploads/${src.replace(/^\/+/, "")}`;
+}
+
 // --- RENDER ---
 async function renderProducts(products, containerId) {
   await fetchBackendFavorites();
@@ -128,12 +199,39 @@ function toggleFavorite(productId) {
   renderProducts(fetchedProducts, detectContainer());
 }
 
-function addToCart(productId) {
-  const sizeSelect = document.getElementById(`size-${productId}`);
-  const size = sizeSelect?.value;
-  if (!size) return alert("Please select a size.");
+function addToCart(arg1, arg2) {
+  let event = null;
+  let productId = null;
 
-  let cart = getCart();
+  if (typeof arg1 === "object" && arg1 !== null && !Array.isArray(arg1)) {
+    event = arg1;
+    productId = typeof arg2 === "number" ? arg2 : parseInt(arg1.currentTarget?.dataset.productId || arg1.target?.dataset.productId, 10);
+  } else {
+    productId = arg1;
+    event = arg2;
+  }
+
+  if (!productId) return;
+
+  if (event && typeof event.stopPropagation === "function") {
+    event.preventDefault?.();
+    event.stopPropagation();
+  }
+
+  const sizeField = document.getElementById(`size-${productId}`);
+  let size = sizeField?.value;
+
+  if (!size) {
+    if (sizeField?.tagName === "INPUT" && sizeField.type === "hidden" && sizeField.value) {
+      size = sizeField.value;
+    } else {
+      alert("Please select a size.");
+      sizeField?.focus?.();
+      return;
+    }
+  }
+
+  const cart = getCart();
   cart.push({ id: productId, size, qty: 1 });
   saveCart(cart);
   alert("✅ Added to cart!");
@@ -147,39 +245,83 @@ function detectContainer() {
 
 function displaySearchResults(products) {
   const searchResults = document.getElementById("searchResults");
-  searchResults.innerHTML = "";
+  if (!searchResults) return;
 
-  if (!products || products.length === 0) {
-    searchResults.innerHTML = "<p>No products found</p>";
+  const productList = Array.isArray(products) ? products : [];
+
+  if (!productList.length) {
+    searchResults.innerHTML = `
+      <div class="col-12">
+        <div class="alert alert-info mb-0">No products found</div>
+      </div>`;
     return;
   }
 
-  products.forEach(product => {
-    let img = '';
-    if (product.images && product.images.length > 0) {
-      img = product.images[0];
-    } else if (product.image) {
-      img = product.image;
-    } else if (product.image_url) {
-      img = product.image_url;
-    } else {
-      img = '/static/img/default.jpg';
-    }
-    if (img && !img.startsWith('/static/')) {
-      img = '/static/uploads/' + img;
-    }
-    const div = document.createElement("div");
-    div.classList.add("product-result", "mb-2");
-    div.innerHTML = `
-      <a href="/product/${product.id}.html" class="d-flex align-items-center">
-        <img src="${img}" alt="${product.title}" class="me-2 search-product-image" width="50" onerror="this.onerror=null;this.src='/static/img/default.jpg';">
-        <div>
-          <p class="mb-0 fw-bold">${product.title}</p>
-          <p class="mb-0 text-muted">EGP ${product.price?.toFixed(2) || '0.00'}</p>
+  const cardsHtml = productList.map(product => {
+    const productId = product.id || product.pID || product.product_id;
+    if (!productId) return "";
+
+    const title = product.title || product.name || product.productName || "Product";
+    const priceValue = parseFloat(product.price ?? product.productPrice ?? 0);
+    const price = Number.isFinite(priceValue) ? priceValue.toFixed(2) : "0.00";
+    const productUrl = product.url || product.productUrl || `/product/${productId}.html`;
+    const safeProductUrl = productUrl.replace(/'/g, "\\'");
+    const imageSrc = resolveProductImage(product);
+    const sizes = normalizeSizes(product);
+
+    const sizeMarkup = sizes.length
+      ? `
+        <select class="form-select form-select-sm mb-2 size-selector" id="size-${productId}" name="size-${productId}" onclick="event.stopPropagation();" aria-label="Select size for ${escapeHtml(title)}">
+          <option value="" selected disabled>Select size</option>
+          ${sizes.map(size => `<option value="${escapeHtml(size)}">${escapeHtml(size)}</option>`).join("")}
+        </select>`
+      : `<input type="hidden" id="size-${productId}" value="Default">`;
+
+    return `
+      <div class="col-lg-3 col-md-4 col-sm-6">
+        <div class="product-card shadow-sm h-100"
+             data-product-id="${productId}"
+             data-product-name="${escapeHtml(title)}"
+             data-product-price="${price}"
+             data-product-url="${escapeHtml(productUrl)}"
+             onclick="window.location.href='${safeProductUrl}'"
+             style="cursor:pointer;">
+          <div class="product-image-container position-relative overflow-hidden">
+            <img src="${escapeHtml(imageSrc)}" class="product-image w-100" alt="${escapeHtml(title)}" onerror="this.onerror=null;this.src='/static/img/default.jpg';">
+            <button class="quick-view-btn" onclick="event.stopPropagation(); window.location.href='${safeProductUrl}'">Quick View</button>
+            <button class="favorite-btn" data-product-id="${productId}" onclick="addToWishlist(event, ${productId})">
+              <i class="fas fa-heart"></i>
+            </button>
+          </div>
+          <div class="product-info text-center mt-2">
+            <h5 class="product-title mb-1 text-dark text-truncate fw-semibold">${escapeHtml(title)}</h5>
+            <p class="product-price text-muted mb-0">EGP ${price}</p>
+            <div class="mt-3">
+              ${sizeMarkup}
+              <button class="btn btn-dark w-100 add-to-cart" data-product-id="${productId}" onclick="addToCart(event, ${productId})">
+                <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+              </button>
+            </div>
+          </div>
         </div>
-      </a>`;
-    searchResults.appendChild(div);
+      </div>`;
+  }).filter(Boolean).join("");
+
+  if (!cardsHtml) {
+    searchResults.innerHTML = `
+      <div class="col-12">
+        <div class="alert alert-info mb-0">No products found</div>
+      </div>`;
+    return;
+  }
+
+  searchResults.innerHTML = cardsHtml;
+
+  searchResults.querySelectorAll('.size-selector').forEach(select => {
+    select.addEventListener('click', e => e.stopPropagation());
   });
+
+  updateAllFavoriteIcons();
 }
 
 function initSearchToggle() {
