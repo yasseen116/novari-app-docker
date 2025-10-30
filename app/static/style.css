@@ -713,3 +713,45 @@ footer a:hover {
     font-style: italic;
     text-decoration: underline;
 }
+
+/* --- Unified product media sizing (override duplicates) --- */
+.product-card { border-radius: 1rem; }
+.product-image-container { 
+  position: relative !important;
+  width: 100% !important;
+  aspect-ratio: 1 / 1 !important; /* perfect square */
+  padding-top: 0 !important;      /* disable older padding hacks */
+  overflow: hidden !important;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+}
+.product-image-container img, .product-image {
+  position: absolute !important;
+  top: 0; left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;   /* fill with no gaps */
+}
+
+/* --- Ensure consistent card heights across grid --- */
+.product-item .product-card {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.product-card .card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: .25rem;
+  min-height: 110px; /* keeps text area consistent */
+}
+.product-card .card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 3.2rem; /* two lines */
+  line-height: 1.2;
+}
+.product-card .card-text { margin-bottom: 0; }

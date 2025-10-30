@@ -4,8 +4,10 @@ from flask_restful import Api
 import mysql.connector
 from flask_login import LoginManager
 import os 
+import time
 from flask_cors import CORS
 from flask_migrate import Migrate
+from sqlalchemy.exc import OperationalError
 
 
 
@@ -16,9 +18,21 @@ db = SQLAlchemy()
 api = Api()
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-def create_db():
-    db.create_all()
-    print("database created")
+def create_db(max_attempts=10, delay_seconds=3):
+    """Create database tables, retrying while the MySQL service comes up."""
+    for attempt in range(1, max_attempts + 1):
+        try:
+            db.create_all()
+            print("database created")
+            return
+        except OperationalError as exc:
+            if attempt == max_attempts:
+                print("database initialization failed after retries")
+                raise
+
+            wait_time = delay_seconds * attempt
+            print(f"database not ready (attempt {attempt}/{max_attempts}): {exc}; retrying in {wait_time}s")
+            time.sleep(wait_time)
 
 def create_app():
     app = Flask(__name__)

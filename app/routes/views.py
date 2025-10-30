@@ -113,14 +113,24 @@ def shop():
 
     # If it's an AJAX request, return JSON
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        products_data = [{
-            'id': p.pID,
-            'name': p.productName,
-            'price': p.productPrice,
-            'category': p.category.catName if p.category else '',
-            'image': p.photos[0].image_url if p.photos else 'img/default.jpg',
-            'rating': p.rating if hasattr(p, 'rating') else 5
-        } for p in products]
+        products_data = []
+        for p in products:
+            # Get image with proper path handling
+            img = 'img/default.jpg'
+            if p.photos and len(p.photos) > 0:
+                img = p.photos[0].image_url
+                # Ensure proper path format
+                if not img.startswith('/static/') and not img.startswith('http'):
+                    img = '/static/uploads/' + img
+            
+            products_data.append({
+                'id': p.pID,
+                'name': p.productName,
+                'price': p.productPrice,
+                'category': p.category.catName if p.category else '',
+                'image': img,
+                'rating': p.rating if hasattr(p, 'rating') and p.rating else 5.0
+            })
         return jsonify({
             'products': products_data,
             'count': len(products)
@@ -163,15 +173,20 @@ def search():
         return render_template('search.html', 
                              products=[], 
                              query=query,
+                             query_display='',
                              pagetitle="Search Results")
     
-    products = Product.query.filter(
-        Product.productName.ilike(f"%{query}%")
+    # Search in product name, description, and category
+    products = Product.query.join(Category).filter(
+        (Product.productName.ilike(f"%{query}%")) |
+        (Product.description.ilike(f"%{query}%")) |
+        (Category.catName.ilike(f"%{query}%"))
     ).all()
     
     return render_template('search.html', 
                          products=products, 
                          query=query,
+                         query_display=query,
                          pagetitle=f"Search Results for: {query}")
 
 @views.route('/product/<int:pID>.html')

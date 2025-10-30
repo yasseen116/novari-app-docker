@@ -331,7 +331,10 @@ document.addEventListener("DOMContentLoaded", () => {
       .then(displaySearchResults);
   } else {
     const containerId = detectContainer();
-    if (containerId) fetchProducts(containerId);
+    const isShopPage = path.endsWith("/shop.html") || path === "/shop.html";
+    if (containerId && !isShopPage) {
+      fetchProducts(containerId);
+    }
   }
 
   // --- CART PAGE LOGIC ---
